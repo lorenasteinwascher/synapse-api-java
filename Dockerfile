@@ -1,28 +1,16 @@
-# ===============================
-# Etapa 1 - Build da aplicação
-# ===============================
-FROM maven:3.9.9-eclipse-temurin-17 AS build
+# Use the Eclipse Temurin Alpine official image
+# https://hub.docker.com/_/eclipse-temurin
+FROM eclipse-temurin:21-jdk-alpine
 
+# Create and change to the app directory
 WORKDIR /app
 
-# Copia todo o projeto para dentro da imagem
+# Copy local code to the container image
 COPY . .
 
-# Build em modo produção, sem rodar testes
-RUN mvn clean package -DskipTests
+# Build the app
+RUN chmod +x mvnw
+RUN ./mvnw -DoutputFile=target/mvn-dependency-list.log -B -DskipTests clean dependency:list install
 
-# ===============================
-# Etapa 2 - Runtime (imagem leve)
-# ===============================
-FROM eclipse-temurin:17-jre
-
-WORKDIR /app
-
-# Copia os artefatos gerados pelo Quarkus (modo fast-jar)
-COPY --from=build /app/target/quarkus-app /app/
-
-# Porta padrão interna do Quarkus (Render faz o mapeamento)
-EXPOSE 8080
-
-# Sobe a aplicação
-CMD ["java", "-jar", "/app/quarkus-run.jar"]
+# Run the Quarkus app
+CMD ["sh", "-c", "java -jar target/quarkus-app/quarkus-run.jar"]
